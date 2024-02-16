@@ -54,29 +54,34 @@ j = 0
 def move(direction, gen_direction, bounding_box, grid, i, j):
     if direction == Direction.DOWN:
         if i == len(grid) - 1:
-            if (j == len(grid[i]) - 1 and gen_direction == Direction.GENERAL_LR)  or (j == 0 and gen_direction == Direction.GENERAL_RL):
+            if (j == len(grid[i]) - 1 and gen_direction == Direction.GENERAL_LR) or (j == 0 and gen_direction == Direction.GENERAL_RL):
                 return (-1, i, j, direction)
             if gen_direction == Direction.GENERAL_LR:
+                grid[i][j] = ">"
                 j += 1
             else:
+                grid[i][j] = "<"
                 j -= 1
             direction = Direction.UP
         else:
+            grid[i][j] = 'v'
             i += 1
     elif direction == Direction.UP:
         if i == 0:
             if (j == len(grid[i]) - 1 and gen_direction == Direction.GENERAL_LR) or (j == 0 and gen_direction == Direction.GENERAL_RL):
                 return -1
             if gen_direction == Direction.GENERAL_LR:
+                grid[i][j] = ">"
                 j += 1
             else:
+                grid[i][j] = "<"
                 j -= 1
             direction = Direction.DOWN
         else:
+            grid[i][j] = '^'
             i -= 1
     else:
         return (-1, i, j, direction)
-    grid[i][j] = 'X'
     return (0, i, j, direction)
 
 def test_main():
