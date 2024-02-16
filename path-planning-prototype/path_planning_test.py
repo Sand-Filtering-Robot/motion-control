@@ -12,7 +12,7 @@ class Direction(Enum):
     GENERAL_LR = 4
     GENERAL_RL = 5
 
-def initialize_grid(bounding_box):
+def initialize_grid(bounding_box: BoundingBox) -> list:
     print(bounding_box.get_top_l_corner())
     print(bounding_box.get_bottom_r_corner())
     grid = bounding_box.quantize_to_grid(SANDE_X, SANDE_Y)
@@ -20,7 +20,7 @@ def initialize_grid(bounding_box):
     print(len(grid[0]))
     return grid
 
-def find_closest_corner(top_l, bottom_l, top_r, bottom_r):
+def find_closest_corner(top_l: tuple, bottom_l: tuple, top_r: tuple, bottom_r: tuple) -> tuple:
     current_pos = get_current_gps_position()
     distance_top_l = ((top_l[0] - current_pos[0])**2 + (top_l[1] - current_pos[1])**2)**0.5
     distance_bottom_l = ((bottom_l[0] - current_pos[0])**2 + (bottom_l[1] - current_pos[1])**2)**0.5
@@ -32,7 +32,7 @@ def find_closest_corner(top_l, bottom_l, top_r, bottom_r):
             min_distance = distance
     return min_distance[1]
 
-def get_initial_direction(bounding_box):
+def get_initial_direction(bounding_box: BoundingBox) -> tuple:
     top_l = bounding_box.get_top_l_corner()
     bottom_r = bounding_box.get_bottom_r_corner()
     bottom_l = (bottom_r[0], top_l[1])
@@ -47,11 +47,8 @@ def get_initial_direction(bounding_box):
     if closest_corner == bottom_r:
         return (Direction.UP, Direction.GENERAL_RL)
 
-i = 0
-j = 0
 
-
-def move(direction, gen_direction, bounding_box, grid, i, j):
+def move(direction: Direction, gen_direction: Direction, grid: list, i: int, j: int) -> tuple:
     if direction == Direction.DOWN:
         if i == len(grid) - 1:
             if (j == len(grid[i]) - 1 and gen_direction == Direction.GENERAL_LR) or (j == 0 and gen_direction == Direction.GENERAL_RL):
@@ -95,7 +92,7 @@ def test_main():
 
     err = 0
     while (err != -1):
-        err, i, j, direction = move(direction, gen_direction, bounding_box, grid, i, j)
+        err, i, j, direction = move(direction, gen_direction, grid, i, j)
         print(f"Current state: ({i}, {j}), Direction: {direction}")
     for row in grid:
         print(row)
