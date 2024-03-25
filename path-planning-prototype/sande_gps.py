@@ -1,3 +1,5 @@
+import serial
+
 def dms_str_to_float(value):
         degree_split = value.split('°')
         degrees = degree_split[0]
@@ -10,6 +12,31 @@ def dms_str_to_float(value):
         seconds = float(seconds)
         output_value = degrees + minutes / 60 + seconds / 3600
         return output_value
+
+def read_gps_coords():
+    (lat_idx, long_idx) = 1, 3
+    line = ""
+    with serial.Serial("COM9") as serial_port:
+        line = serial_port.readline()
+        while (bytes("$GNGLL", 'ascii') not in line):
+            line = serial_port.readline()
+    line = str(line, 'ascii').strip()
+    parts = line.split(",")
+    
+    degrees_lat = float(parts[lat_idx].split('.')[0][0:-2])
+    minutes_lat = float(parts[lat_idx].split('.')[0][-2:]) / 60
+    dec_lat_str = parts[lat_idx].split('.')[1]
+    decimal_lat = float(dec_lat_str) / 10**len(dec_lat_str)
+    total_dec_lat = degrees_lat + minutes_lat + decimal_lat
+
+    degrees_long = float(parts[long_idx].split('.')[0][0:-2])
+    minutes_long = float(parts[long_idx].split('.')[0][-2:]) / 60
+    dec_long_str = parts[long_idx].split('.')[1]
+    decimal_long = float(dec_long_str) / 10**len(dec_long_str)
+    total_dec_long = degrees_long + minutes_long + decimal_long
+
+    return (total_dec_lat, total_dec_long)
+
 
 def in_to_degrees_long(inch_value):
     return (inch_value / 12) / 288200
@@ -43,8 +70,8 @@ class BoundingBox:
                 grid[i].append(0)
         return grid
     
-CURRENT_GPS_POSITION_X = '33°46\'44.6"N'
-CURRENT_GPS_POSITION_Y = '84°24\'20.5"W'
+CURRENT_GPS_POSITION_X = 34.4382967
+CURRENT_GPS_POSITION_Y = 84.7193700
 
-def get_current_gps_position():
-    return (dms_str_to_float(CURRENT_GPS_POSITION_X), dms_str_to_float(CURRENT_GPS_POSITION_Y))
+if __name__ == "__main__":
+    read_gps_coords()

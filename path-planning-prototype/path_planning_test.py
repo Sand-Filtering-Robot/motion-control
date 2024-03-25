@@ -21,7 +21,7 @@ def initialize_grid(bounding_box: BoundingBox) -> list:
     return grid
 
 def find_closest_corner(top_l: tuple, bottom_l: tuple, top_r: tuple, bottom_r: tuple) -> tuple:
-    current_pos = get_current_gps_position()
+    current_pos = read_gps_coords()
     distance_top_l = ((top_l[0] - current_pos[0])**2 + (top_l[1] - current_pos[1])**2)**0.5
     distance_bottom_l = ((bottom_l[0] - current_pos[0])**2 + (bottom_l[1] - current_pos[1])**2)**0.5
     distance_top_r = ((top_r[0] - current_pos[0])**2 + (top_r[1] - current_pos[1])**2)**0.5
@@ -66,7 +66,7 @@ def move(direction: Direction, gen_direction: Direction, grid: list, i: int, j: 
     elif direction == Direction.UP:
         if i == 0:
             if (j == len(grid[i]) - 1 and gen_direction == Direction.GENERAL_LR) or (j == 0 and gen_direction == Direction.GENERAL_RL):
-                return -1
+                return (-1, i, j, direction)
             if gen_direction == Direction.GENERAL_LR:
                 grid[i][j] = ">"
                 j += 1
