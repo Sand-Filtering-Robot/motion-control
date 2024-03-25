@@ -1,4 +1,5 @@
 import serial
+from env import GPS_SERIAL_PORT_NAME, TESTING_CURRENT_GPS_POSITION_X, TESTING_CURRENT_GPS_POSITION_Y
 
 def dms_str_to_float(value):
         degree_split = value.split('°')
@@ -16,24 +17,31 @@ def dms_str_to_float(value):
 def read_gps_coords():
     (lat_idx, long_idx) = 1, 3
     line = ""
-    with serial.Serial("COM9") as serial_port:
-        line = serial_port.readline()
-        while (bytes("$GNGLL", 'ascii') not in line):
-            line = serial_port.readline()
-    line = str(line, 'ascii').strip()
-    parts = line.split(",")
-    
-    degrees_lat = float(parts[lat_idx].split('.')[0][0:-2])
-    minutes_lat = float(parts[lat_idx].split('.')[0][-2:]) / 60
-    dec_lat_str = parts[lat_idx].split('.')[1]
-    decimal_lat = float(dec_lat_str) / 10**len(dec_lat_str)
-    total_dec_lat = degrees_lat + minutes_lat + decimal_lat
 
-    degrees_long = float(parts[long_idx].split('.')[0][0:-2])
-    minutes_long = float(parts[long_idx].split('.')[0][-2:]) / 60
-    dec_long_str = parts[long_idx].split('.')[1]
-    decimal_long = float(dec_long_str) / 10**len(dec_long_str)
-    total_dec_long = degrees_long + minutes_long + decimal_long
+    total_dec_lat = TESTING_CURRENT_GPS_POSITION_X
+    total_dec_long = TESTING_CURRENT_GPS_POSITION_Y
+
+    try:
+        with serial.Serial(GPS_SERIAL_PORT_NAME) as serial_port:
+            line = serial_port.readline()
+            while (bytes("$GNGLL", 'ascii') not in line):
+                line = serial_port.readline()
+        line = str(line, 'ascii').strip()
+        parts = line.split(",")
+        
+        degrees_lat = float(parts[lat_idx].split('.')[0][0:-2])
+        minutes_lat = float(parts[lat_idx].split('.')[0][-2:]) / 60
+        dec_lat_str = parts[lat_idx].split('.')[1]
+        decimal_lat = float(dec_lat_str) / 10**len(dec_lat_str)
+        total_dec_lat = degrees_lat + minutes_lat + decimal_lat
+
+        degrees_long = float(parts[long_idx].split('.')[0][0:-2])
+        minutes_long = float(parts[long_idx].split('.')[0][-2:]) / 60
+        dec_long_str = parts[long_idx].split('.')[1]
+        decimal_long = float(dec_long_str) / 10**len(dec_long_str)
+        total_dec_long = degrees_long + minutes_long + decimal_long
+    except:
+        print("ERROR opening serial communication with GPS module!")
 
     return (total_dec_lat, total_dec_long)
 
@@ -69,9 +77,6 @@ class BoundingBox:
             for j in range(0, num_cols):
                 grid[i].append(0)
         return grid
-    
-CURRENT_GPS_POSITION_X = 34.4382967
-CURRENT_GPS_POSITION_Y = 84.7193700
 
 if __name__ == "__main__":
     read_gps_coords()
