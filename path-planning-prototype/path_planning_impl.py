@@ -235,6 +235,13 @@ def move(state: PlanStateManager) -> int:
     send_move_control_signal(state.direction)
     return 0
 
+def save_current_grid_state(state):
+    file_name = 'current_gps_grid_state.txt'
+    with open(file_name, 'w') as f:
+        for row in state.grid:
+            f.write(str(row))
+            f.write('\n')
+
 def test_main():
     print("Testing path planning")
     bounding_box: BoundingBox = BoundingBox('33°46\'44.6"N', '84°24\'20.5"W', '33°46\'44.1"N', '84°24\'19.3"W')
@@ -254,7 +261,6 @@ def test_main():
         print(f"Current state: ({state.x}, {state.y}), Direction: {state.direction}")
     for row in state.grid:
         print(row)
-    
 
 if __name__ == "__main__":
     test_main()
