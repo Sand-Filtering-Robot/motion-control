@@ -12,15 +12,18 @@ class MotorPins:
         self.inB = inB
         
 class MotorDriver:
+    motorPWM = []
+    motorControlA = []
+    motorControlB = []
+
     def __init__(self, motorPins: List) -> None:
         # initialize a motor instance that creates all necessary GPIO and PWM to drive
         # SandE in all directions at variable speed
         for i in range(len(motorPins)):
-            self.motorPWM[i] = PWMOutputDevice(motorPins[i].pwmPin)
-            self.motorControlA[i] = DigitalOutputDevice(motorPins[i].inA)
-            self.motorControlB[i] = DigitalOutputDevice(motorPins[i].inB)
-            print(f'[INFO]: Motor {i} on PWM {motorPins[i].pwmPin} has been 
-                  succesfully initialized')
+            self.motorPWM.append(PWMOutputDevice(motorPins[i].pwmPin))
+            self.motorControlA.append(DigitalOutputDevice(motorPins[i].inA))
+            self.motorControlB.append(DigitalOutputDevice(motorPins[i].inB))
+            print(f'[INFO]: Motor {i} on PWM {motorPins[i].pwmPin} has been succesfully initialized')
         
         self.numMotors = len(motorPins)
         self.maxSpeed = 0.5
@@ -31,9 +34,9 @@ class MotorDriver:
         for i in range(self.numMotors):
             if (speed > self.maxSpeed):
                 print('[WARNING]: MAX SPEED THRESHOLD WAS EXCEEDED')
-                self.motorPWM[i].pwm = self.maxSpeed
+                self.motorPWM[i].value = self.maxSpeed
             else:
-                self.motorPWM[i].pwm = speed
+                self.motorPWM[i].value = speed
             self.motorControlA[i].value = 1
             self.motorControlB[i].value = 0
 
@@ -43,9 +46,9 @@ class MotorDriver:
         for i in range(self.numMotors):
             if (speed > self.maxSpeed):
                 print('[WARNING]: MAX SPEED THRESHOLD WAS EXCEEDED')
-                self.motorPWM[i].pwm = self.maxSpeed
+                self.motorPWM[i].value = self.maxSpeed
             else:
-                self.motorPWM[i].pwm = speed
+                self.motorPWM[i].value = speed
             self.motorControlA[i].value = 0
             self.motorControlB[i].value = 1
 
@@ -57,9 +60,9 @@ class MotorDriver:
         for i in range(self.numMotors):
             if (speed > self.maxSpeed):
                 print('[WARNING]: MAX SPEED THRESHOLD WAS EXCEEDED')
-                self.motorPWM[i].pwm = self.maxSpeed
+                self.motorPWM[i].value = self.maxSpeed
             else:
-                self.motorPWM[i].pwm = speed
+                self.motorPWM[i].value = speed
             self.motorControlA[i].value = 1 - (i % 2)
             self.motorControlB[i].value = i % 2
 
@@ -70,16 +73,16 @@ class MotorDriver:
         for i in range(self.numMotors):
             if (speed > self.maxSpeed):
                 print('[WARNING]: MAX SPEED THRESHOLD WAS EXCEEDED')
-                self.motorPWM[i].pwm = self.maxSpeed
+                self.motorPWM[i].value = self.maxSpeed
             else:
-                self.motorPWM[i].pwm = speed
+                self.motorPWM[i].value = speed
             self.motorControlA[i].value = i % 2
             self.motorControlB[i].value = 1 - (i % 2)
     
     def __str__(self) -> str:
         driverString = f'MOTOR DRIVER INSTANCE'
         for i in range(self.numMotors):
-            driverString += f'\nMOTOR {i} PWM: {self.motorPWM[i].pwm}'
+            driverString += f'\nMOTOR {i} PWM: {self.motorPWM[i].value}'
             driverString += f'\nMOTOR {i} inA: {self.motorControlA[i].value}'
             driverString += f'\nMOTOR {i} inB: {self.motorControlB[i].value}'
 
