@@ -78,6 +78,13 @@ class MotorDriver:
                 self.motorPWM[i].value = speed
             self.motorControlA[i].value = i % 2
             self.motorControlB[i].value = 1 - (i % 2)
+        
+    def stop(self) -> None:
+        print(f'[INFO]: Stopping')
+        for i in range(self.numMotors):
+            self.motorPWM[i].value = 0
+            self.motorControlA[i].value = 0
+            self.motorControlB[i].value = 0
     
     def __str__(self) -> str:
         driverString = f'MOTOR DRIVER INSTANCE'
