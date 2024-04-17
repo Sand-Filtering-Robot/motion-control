@@ -244,7 +244,7 @@ def save_current_grid_state(state):
 
 def test_main():
     print("Testing path planning")
-    bounding_box: BoundingBox = BoundingBox('33°46\'44.6"N', '84°24\'20.5"W', '33°46\'44.1"N', '84°24\'19.3"W')
+    bounding_box: BoundingBox = BoundingBox('33.77905556', '84.405694444', '33.77891666', '84.4053611')
     state = PlanStateManager()
     direction, gen_direction = get_initial_direction(bounding_box)
     state.direction = direction

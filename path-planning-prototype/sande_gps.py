@@ -54,8 +54,8 @@ def in_to_degrees_latt(inch_value):
 
 class BoundingBox:
     def __init__(self, top_lat, left_long, bottom_lat, right_long):
-        self.top_corner = (dms_str_to_float(top_lat), dms_str_to_float(left_long))
-        self.bottom_corner = (dms_str_to_float(bottom_lat), dms_str_to_float(right_long))
+        self.top_corner = (float(top_lat), float(left_long))
+        self.bottom_corner = (float(bottom_lat), float(right_long))
 
     def get_top_l_corner(self):
         return self.top_corner
