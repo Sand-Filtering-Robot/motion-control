@@ -13,7 +13,7 @@ from src.motor import MotorDriver
 from src.motor import DEFAULT_SPEED
 from path_planning_prototype.path_planning_impl import PathPlanner
 
-def handleUserInterface(clientSocket):
+def handleUserInterface(clientSocket, app_state_lock, app_current_speed, app_current_mode, path_planner, sand_e_sleep_time):
     while True:
         # receive a request/message from UI
         recv_msg = clientSocket.recv(64).decode()
@@ -28,20 +28,21 @@ def handleUserInterface(clientSocket):
             continue
         
         # parse the message and execute corresponding action
+        app_state_lock.acquire()
         match decoded_msg[0]:   # apparently python has a switch statement now :)
             case 'MODE':
                 match decoded_msg[1]:
                     case 'MANUAL':
-                        if ui_current_mode != 'MANUAL':
+                        if app_current_mode != 'MANUAL':
                             driver.stop()
-                        ui_current_speed = DEFAULT_SPEED
-                        ui_current_mode = 'MANUAL'
+                        app_current_speed = DEFAULT_SPEED
+                        app_current_mode = 'MANUAL'
                     case 'AUTONOMOUS':
-                        if ui_current_mode != 'AUTONOMOUS':
+                        if app_current_mode != 'AUTONOMOUS':
                             driver.stop()
                         if path_planner != None:
-                            ui_current_mode = DEFAULT_SPEED
-                            ui_current_mode = 'AUTONOMOUS'
+                            app_current_mode = DEFAULT_SPEED
+                            app_current_mode = 'AUTONOMOUS'
                         else:
                             driver.stop()
                             print('Tried to go autonomous, but path planner has not been initialized!')
@@ -50,16 +51,16 @@ def handleUserInterface(clientSocket):
                 pass
 
             case 'MOVE':
-                if ui_current_mode == "MANUAL":
+                if app_current_mode == "MANUAL":
                     match decoded_msg[1]:
                         case 'UP':
-                            driver.forward(ui_current_speed)
+                            driver.forward(app_current_speed)
                         case 'DOWN':
-                            driver.backward(ui_current_speed)
+                            driver.backward(app_current_speed)
                         case 'LEFT':
-                            driver.left(ui_current_speed)
+                            driver.left(app_current_speed)
                         case 'RIGHT':
-                            driver.right(ui_current_speed)
+                            driver.right(app_current_speed)
                         case 'STOP':
                             driver.stop()
                         case _:
@@ -70,15 +71,15 @@ def handleUserInterface(clientSocket):
             case 'SPEED':
                 match decoded_msg[1]:
                     case 'FASTER':
-                        if (ui_current_speed < 1):
-                            ui_current_speed += 0.1
+                        if (app_current_speed < 1):
+                            app_current_speed += 0.1
                         else:
-                            ui_current_speed = 1
+                            app_current_speed = 1
                     case 'SLOWER':
-                        if (ui_current_speed > 0):
-                            ui_current_speed -= 0.1
+                        if (app_current_speed > 0):
+                            app_current_speed -= 0.1
                         else:
-                            ui_current_speed = 0
+                            app_current_speed = 0
                     case _:
                         print(f'default speed state -> error occurred!')
 
@@ -91,16 +92,15 @@ def handleUserInterface(clientSocket):
 
             case _:
                 print("default!")
+        app_state_lock.release()
 
         time.sleep(0.25)
 
 
-def auto_movement():
+def auto_movement(app_state_lock, app_current_speed, app_current_mode, path_planner, sand_e_sleep_time):
     while True:
-        if app_current_mode != 'AUTONOMOUS':
-            time.sleep(0.25)
-            continue
-        else:
+        app_state_lock.acquire()
+        if app_current_mode == 'AUTONOMOUS':
             if path_planner == None:
                 print('ERROR: In autonomous control mode, but PathPlanner has not been initalized!')
             else:
@@ -121,8 +121,8 @@ def auto_movement():
                             sand_e_sleep_time = 0.5
                         case _:
                             print(f'ERROR: Unexpected direction return ({move_direction}) from PathPlanning')
-
-                time.sleep(sand_e_sleep_time)
+        app_state_lock.release()
+        time.sleep(sand_e_sleep_time)
 
 def main():
     ### MOTOR DRIVER SETUP ###
@@ -171,7 +171,8 @@ def main():
     # and handle any incoming client connections (i.e. user interface client)
     serverSocket.listen(1) # this parameter=1 doesn't matter too much here
     
-    motion_handler = threading.Thread(target=auto_movement)
+    app_state_lock = threading.Lock()
+    motion_handler = threading.Thread(target=auto_movement, args=(app_state_lock, app_current_speed, app_current_mode, path_planner, sand_e_sleep_time))
     motion_handler.start()
 
     # infinite loop to handle client connections
@@ -184,7 +185,7 @@ def main():
         print(f'Succesfully connected to IP: {clientAddress}\nGot: {recv_msg}')
 
         # call user interface handler
-        handler = threading.Thread(target=handleUserInterface, args=(clientSocket, ))
+        handler = threading.Thread(target=handleUserInterface, args=(clientSocket, app_state_lock, app_current_speed, app_current_mode, path_planner, sand_e_sleep_time))
         handler.start()
     
 if __name__ == '__main__':
