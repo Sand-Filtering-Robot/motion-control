@@ -1,4 +1,6 @@
-from sande_gps import *
+import time
+from path_planning_prototype.sande_gps import *
+from src.motor import MotorDriver
 from enum import Enum
 
 SANDE_X = 18
@@ -109,17 +111,144 @@ def move_right(state):
     state.grid[state.x][state.y] = ">"
     state.y += 1
 
+def isObjectAhead():
+    return False
 
 # Object detection API calls will go here eventually
-def can_move_in_direction(moveDirection, state):
+def can_move_in_direction(moveDirection, state, driver):
+    rrn = False
+    if state.x <= 0:
+        return False
     if moveDirection == Direction.UP:
-        return state.x > 0 and (state.grid[state.x - 1][state.y] != "X")
+        if moveDirection == state.direction:
+            return isObjectAhead()
+        else:
+            if state.direction == Direction.DOWN:
+                driver.moveLeft()
+                time.sleep(2)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveLeft()
+                time.sleep(2)
+                driver.stop()
+                return rrn
+            elif state.direction == Direction.LEFT:
+                driver.moveRight()
+                time.sleep(1)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveLeft()
+                time.sleep(1)
+                driver.stop()
+                return rrn
+            elif state.direction == Direction.RIGHT:
+                driver.moveLeft()
+                time.sleep(1)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveRight()
+                time.sleep(1)
+                driver.stop()
+                return rrn
     elif moveDirection == Direction.DOWN:
-        return state.x < len(state.grid) - 1 and (state.grid[state.x + 1][state.y] != "X")
+        if state.x >= len(state.grid) - 1:
+            return False
+        if moveDirection == state.direction:
+            return isObjectAhead()
+        else:
+            if state.direction == Direction.UP:
+                driver.moveRight()
+                time.sleep(2)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveRight()
+                time.sleep(2)
+                driver.stop()
+                return rrn
+            elif state.direction == Direction.LEFT:
+                driver.moveRight()
+                time.sleep(1)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveLeft()
+                time.sleep(1)
+                driver.stop()
+                return rrn
+            elif state.direction == Direction.RIGHT:
+                driver.moveLeft()
+                time.sleep(1)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveRight()
+                time.sleep(1)
+                driver.stop()
+                return rrn
     elif moveDirection == Direction.LEFT:
-        return state.y > 0 and (state.grid[state.x][state.y - 1] != "X")
+        if state.y <= 0:
+            return False
+        if moveDirection == state.direction:
+            return isObjectAhead()
+        else:
+            if state.direction == Direction.UP:
+                driver.moveLeft()
+                time.sleep(1)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveRight()
+                time.sleep(1)
+                driver.stop()
+                return rrn
+            elif state.direction == Direction.DOWN:
+                driver.moveRight()
+                time.sleep(1)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveLeft()
+                time.sleep(1)
+                driver.stop()
+                return rrn
+            elif state.direction == Direction.RIGHT:
+                driver.moveLeft()
+                time.sleep(2)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveRight()
+                time.sleep(2)
+                driver.stop()
+                return rrn
     elif moveDirection == Direction.RIGHT:
-        return state.y < len(state.grid[0]) - 1 and (state.grid[state.x][state.y + 1] != "X")
+        if state.y >= len(state.grid[0]) - 1:
+            return False
+        if state.direction == moveDirection:
+            return isObjectAhead()
+        else:
+            if state.direction == Direction.UP:
+                driver.moveRight()
+                time.sleep(1)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveLeft()
+                time.sleep(1)
+                driver.stop()
+                return rrn
+            elif state.direction == Direction.DOWN:
+                driver.moveLeft()
+                time.sleep(1)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveRight()
+                time.sleep(1)
+                driver.stop()
+                return rrn
+            elif state.direction == Direction.LEFT:
+                driver.moveLeft()
+                time.sleep(2)
+                driver.stop()
+                rrn = isObjectAhead()
+                driver.moveRight(2)
+                time.sleep(2)
+                driver.stop()
+                return rrn
     else:
         return False
 
@@ -162,15 +291,15 @@ def set_direction_perp(state):
         else:
             state.direction == Direction.DOWN
 
-def move(state: PlanStateManager) -> int:
+def move(state: PlanStateManager, driver: MotorDriver) -> int:
     if (not len(state.unmatched_moves) and len(state.direction_stack)) or len(state.direction_stack) > 1:
-        if (can_move_in_direction(state.direction_stack[-1], state)):
+        if (can_move_in_direction(state.direction_stack[-1], state, driver)):
             state.direction = state.direction_stack.pop()
         else:
             if len(state.direction_stack) > 1:
                 state.unmatched_moves.append(opposite(state.direction))
     elif len(state.direction_stack) == 1 and len(state.unmatched_moves):
-        if can_move_in_direction(state.unmatched_moves[-1], state):
+        if can_move_in_direction(state.unmatched_moves[-1], state, driver):
             state.direction =  state.unmatched_moves.pop()
 
     if state.direction == Direction.DOWN:
@@ -180,11 +309,11 @@ def move(state: PlanStateManager) -> int:
         if at_turning_edge(state):
             setNextDirection(state)
         else:
-            if can_move_in_direction(state.direction, state):
+            if can_move_in_direction(state.direction, state, driver):
                 move_down(state)
             else:
                 unmatched = False
-                while (not can_move_in_direction(state.direction, state)):
+                while (not can_move_in_direction(state.direction, state, driver)):
                     if not unmatched:
                         state.direction_stack.append(state.direction)
                         state.direction_stack.append(state.direction)
@@ -197,11 +326,11 @@ def move(state: PlanStateManager) -> int:
         if at_turning_edge(state):
             setNextDirection(state)
         else:
-            if can_move_in_direction(state.direction, state):
+            if can_move_in_direction(state.direction, state, driver):
                 move_up(state)
             else:
                 unmatched = False
-                while (not can_move_in_direction(state.direction, state)):
+                while (not can_move_in_direction(state.direction, state, driver)):
                     if not unmatched:
                         state.direction_stack.append(state.direction)
                         state.direction_stack.append(state.direction)
@@ -211,7 +340,7 @@ def move(state: PlanStateManager) -> int:
         if term(state):
             state.grid[state.x][state.y] = "T"
             return -1
-        if can_move_in_direction(state.direction, state):
+        if can_move_in_direction(state.direction, state, driver):
             move_left(state)
             if at_turning_edge(state):
                 if state.x == 0:
@@ -224,7 +353,7 @@ def move(state: PlanStateManager) -> int:
         if term(state):
             state.grid[state.x][state.y] = "T"
             return -1
-        if can_move_in_direction(state.direction, state):
+        if can_move_in_direction(state.direction, state, driver):
             move_right(state)
             if at_turning_edge(state):
                 if state.x == 0:
@@ -256,8 +385,8 @@ class PathPlanner():
             self.state.direction, self.state.overall_direction = get_initial_direction(self.bounding_box)
             self.state.grid = initialize_grid(self.bounding_box)
 
-    def move(self):
-        return move(self.state)
+    def move(self, driver):
+        return move(self.state, driver)
 
 def test_main():
     print("Testing path planning")

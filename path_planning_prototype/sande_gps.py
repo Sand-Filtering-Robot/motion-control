@@ -1,5 +1,5 @@
 import serial
-from env import GPS_SERIAL_PORT_NAME, TESTING_CURRENT_GPS_POSITION_X, TESTING_CURRENT_GPS_POSITION_Y
+from path_planning_prototype.env import GPS_SERIAL_PORT_NAME, TESTING_CURRENT_GPS_POSITION_X, TESTING_CURRENT_GPS_POSITION_Y
 
 def dms_str_to_float(value):
         degree_split = value.split('°')

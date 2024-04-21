@@ -14,10 +14,6 @@ from src.motor import DEFAULT_SPEED
 from path_planning_prototype.path_planning_impl import PathPlanner
 
 def handleUserInterface(clientSocket):
-    ui_current_speed = DEFAULT_SPEED
-    ui_current_mode = STARTING_MODE
-    path_planner = None
-    sand_e_sleep_time = 0.25
     while True:
         # receive a request/message from UI
         recv_msg = clientSocket.recv(64).decode()
@@ -95,32 +91,38 @@ def handleUserInterface(clientSocket):
 
             case _:
                 print("default!")
-        
-        if ui_current_mode == 'AUTONOMOUS':
+
+        time.sleep(0.25)
+
+
+def auto_movement():
+    while True:
+        if app_current_mode != 'AUTONOMOUS':
+            time.sleep(0.25)
+            continue
+        else:
             if path_planner == None:
                 print('ERROR: In autonomous control mode, but PathPlanner has not been initalized!')
             else:
-                if path_planner.move() != -1:
+                if path_planner.move(driver) != -1:
                     move_direction = str(path_planner.state.direction)
                     match move_direction:
                         case 'LEFT':
-                            driver.left(ui_current_speed)
+                            driver.left(app_current_speed)
                             sand_e_sleep_time = 1
                         case 'RIGHT':
-                            driver.right(ui_current_speed)
+                            driver.right(app_current_speed)
                             sand_e_sleep_time = 1
                         case 'UP':
-                            driver.forward(ui_current_speed)
+                            driver.forward(app_current_speed)
                             sand_e_sleep_time = 0.5
                         case 'DOWN':
-                            driver.forward(ui_current_speed)
+                            driver.forward(app_current_speed)
                             sand_e_sleep_time = 0.5
                         case _:
                             print(f'ERROR: Unexpected direction return ({move_direction}) from PathPlanning')
 
-        time.sleep(0.25)
-        sand_e_sleep_time = DEFAULT_SLEEP_TIME
-    
+                time.sleep(sand_e_sleep_time)
 
 def main():
     ### MOTOR DRIVER SETUP ###
@@ -135,6 +137,15 @@ def main():
     # intialize motor driver
     global driver
     driver = MotorDriver(motorPins=motorPinsList)
+
+    global app_current_speed
+    app_current_speed = DEFAULT_SPEED
+    global app_current_mode
+    app_current_mode = STARTING_MODE
+    global path_planner
+    path_planner = PathPlanner(0, 0, 0, 0, True) # Remove after testing
+    global sand_e_sleep_time
+    sand_e_sleep_time = 0.25
 
     ### SOCKET SERVER SETUP ###
     # First: instantiate the socket
@@ -160,6 +171,9 @@ def main():
     # and handle any incoming client connections (i.e. user interface client)
     serverSocket.listen(1) # this parameter=1 doesn't matter too much here
     
+    motion_handler = threading.Thread(target=auto_movement)
+    motion_handler.start()
+
     # infinite loop to handle client connections
     while True:
         # accept client and extract socket and address
