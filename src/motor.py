@@ -3,7 +3,7 @@ from gpiozero import PWMOutputDevice
 from gpiozero import DigitalOutputDevice
 
 # constants
-DEFAULT_SPEED = 0.2
+DEFAULT_SPEED = 0.3
 
 class MotorPins:
     def __init__(self, pwm, inA, inB) -> None:
@@ -26,7 +26,7 @@ class MotorDriver:
             print(f'[INFO]: Motor {i} on PWM {motorPins[i].pwmPin} has been succesfully initialized')
         
         self.numMotors = len(motorPins)
-        self.maxSpeed = 0.5
+        self.maxSpeed = 0.8
 
     # forward motion is defined as in_a = 1, in_b = 0, pwm = speed
     def forward(self, speed=DEFAULT_SPEED) -> None:
@@ -53,29 +53,47 @@ class MotorDriver:
             self.motorControlB[i].value = 1
 
     # right motion is defined as a mix of forward and backward
-    def right(self, speed=DEFAULT_SPEED) -> None:
+    def right(self, speed=DEFAULT_SPEED, special=False) -> None:
         # left wheels go forward (wheels 0 and 2)
         # right wheels go backward (wheels 1 and 3)
         print(f'[INFO]: Moving right at {speed * 100}% speed!')
+
+        if special:
+            self.motorPWM[0].value = speed
+            self.motorPWM[1].value = speed * 0.5
+            self.motorPWM[2].value = speed * 0.5
+            self.motorPWM[3].value = speed
+        else:
+            for i in range(self.numMotors):
+                if (speed > self.maxSpeed):
+                    print('[WARNING]: MAX SPEED THRESHOLD WAS EXCEEDED')
+                    self.motorPWM[i].value = self.maxSpeed
+                else:
+                    self.motorPWM[i].value = speed
+
         for i in range(self.numMotors):
-            if (speed > self.maxSpeed):
-                print('[WARNING]: MAX SPEED THRESHOLD WAS EXCEEDED')
-                self.motorPWM[i].value = self.maxSpeed
-            else:
-                self.motorPWM[i].value = speed
             self.motorControlA[i].value = 1 - (i % 2)
             self.motorControlB[i].value = i % 2
 
-    def left(self, speed=DEFAULT_SPEED) -> None:
+    def left(self, speed=DEFAULT_SPEED, special=False) -> None:
         # left wheels go backward (wheels 0 and 2)
         # right wheels go forward (wheels 1 and 3)
         print(f'[INFO]: Moving left at {speed * 100}% speed!')
+
+        if special:
+            self.motorPWM[0].value = speed * 0.5
+            self.motorPWM[1].value = speed 
+            self.motorPWM[2].value = speed 
+            self.motorPWM[3].value = speed * 0.5
+        else:
+            for i in range(self.numMotors):
+                if (speed > self.maxSpeed):
+                    print('[WARNING]: MAX SPEED THRESHOLD WAS EXCEEDED')
+                    self.motorPWM[i].value = self.maxSpeed
+                else:
+                    self.motorPWM[i].value = speed
+
         for i in range(self.numMotors):
-            if (speed > self.maxSpeed):
-                print('[WARNING]: MAX SPEED THRESHOLD WAS EXCEEDED')
-                self.motorPWM[i].value = self.maxSpeed
-            else:
-                self.motorPWM[i].value = speed
             self.motorControlA[i].value = i % 2
             self.motorControlB[i].value = 1 - (i % 2)
         
