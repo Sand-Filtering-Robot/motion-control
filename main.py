@@ -80,7 +80,22 @@ def handleUserInterface(clientSocket):
 
 ### Detection Thread
 def run_detection():
-    detection.run_detection(debug=True)
+    detection.run_detection(detected, detectedLock, debug=True)
+
+### Helper method that checks whether a person has been detected
+# Used by path planner
+def check_detection() -> bool:
+    detectedLock.acquire()
+    is_detected = detected[0]
+    detectedLock.release()
+
+    return is_detected
+
+### Fake path planner (just for checking detection status)
+def fake_path_planner_thread():
+    while True:
+        print(f'Detection Status: {check_detection()}')
+        time.sleep(1)
 
 ### Main function definition
 def main():
@@ -98,6 +113,12 @@ def main():
     driver = MotorDriver(motorPins=motorPinsList)
 
     ### OBJECT DETECTION SETUP ###
+    # initialize global detection variable accessed by path planner
+    global detected
+    global detectedLock
+    detected = [False]
+    detectedLock = threading.Lock()
+
     # initializes the camera and ssdlite model
     global detection
     detection = ObjectDetection()
@@ -108,6 +129,9 @@ def main():
     # initialize detection
     detectionThread = threading.Thread(target=run_detection)
     detectionThread.start()
+
+    ### Fake path planner initialization
+    fake_planner = threading.Thread(target=fake_path_planner_thread)
 
     ### SOCKET SERVER SETUP ###
     # First: instantiate the socket
