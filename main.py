@@ -126,7 +126,7 @@ def main():
     detection = ObjectDetection()
 
     # configure the camera settings
-    detection.configure_camera()
+    detection.configure_camera(debug=True)
     
     # initialize detection
     detectionThread = threading.Thread(target=run_detection)
