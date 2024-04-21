@@ -42,13 +42,13 @@ def handleUserInterface(clientSocket):
             case 'MOVE':
                 match decoded_msg[1]:
                     case 'UP':
-                        driver.forward()
+                        driver.forward(ui_current_speed)
                     case 'DOWN':
-                        driver.backward()
+                        driver.backward(ui_current_speed)
                     case 'LEFT':
-                        driver.left()
+                        driver.left(ui_current_speed)
                     case 'RIGHT':
-                        driver.right()
+                        driver.right(ui_current_speed)
                     case 'STOP':
                         driver.stop()
                     case _:
