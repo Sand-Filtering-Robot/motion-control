@@ -12,6 +12,9 @@ from src.motor import MotorPins
 from src.motor import MotorDriver
 from src.motor import DEFAULT_SPEED
 
+# object detection imports
+from 'object-detection'.detection import ObjectDetection
+
 def handleUserInterface(clientSocket):
     ui_current_speed = DEFAULT_SPEED
     while True:
