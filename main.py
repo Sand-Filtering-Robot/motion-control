@@ -134,6 +134,7 @@ def main():
 
     ### Fake path planner initialization
     fake_planner = threading.Thread(target=fake_path_planner_thread)
+    fake_planner.start()
 
     ### SOCKET SERVER SETUP ###
     # First: instantiate the socket
