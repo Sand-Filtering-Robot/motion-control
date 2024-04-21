@@ -80,7 +80,9 @@ def handleUserInterface(clientSocket):
 
 ### Detection Thread
 def run_detection():
-    detection.run_detection(detected, detectedLock, debug=True)
+    while True:
+        detection.run_detection(detected, detectedLock, debug=True)
+        time.sleep(1)
 
 ### Helper method that checks whether a person has been detected
 # Used by path planner
