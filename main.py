@@ -22,7 +22,7 @@ def handleUserInterface(clientSocket):
 
         # Not sure if we really need this safety check. But it's here
         # just in case we get some empty data?
-        if len(decoded_msg < 1):
+        if len(decoded_msg) < 1:
             continue
         
         # parse the message and execute corresponding action
