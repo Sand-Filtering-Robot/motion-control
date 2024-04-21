@@ -10,8 +10,10 @@ from env import SERVER_PORT
 # motor driver imports
 from src.motor import MotorPins
 from src.motor import MotorDriver
+from src.motor import DEFAULT_SPEED
 
 def handleUserInterface(clientSocket):
+    ui_current_speed = DEFAULT_SPEED
     while True:
         # receive a request/message from UI
         recv_msg = clientSocket.recv(64).decode()
@@ -22,32 +24,52 @@ def handleUserInterface(clientSocket):
 
         # Not sure if we really need this safety check. But it's here
         # just in case we get some empty data?
-        if len(decoded_msg < 1):
+        if len(decoded_msg) < 1:
             continue
         
         # parse the message and execute corresponding action
         match decoded_msg[0]:   # apparently python has a switch statement now :)
             case 'MODE':
-                # do something
+                match decoded_msg[1]:
+                    case 'MANUAL':
+                        ui_current_speed = DEFAULT_SPEED
+                    case 'AUTONOMOUS':
+                        pass
+                    case _:
+                        print(f'default mode state -> error occurred!')
                 pass
 
             case 'MOVE':
                 match decoded_msg[1]:
                     case 'UP':
-                        driver.forward()
+                        driver.forward(ui_current_speed)
                     case 'DOWN':
-                        driver.backward()
+                        driver.backward(ui_current_speed)
                     case 'LEFT':
-                        driver.left()
+                        driver.left(ui_current_speed)
                     case 'RIGHT':
-                        driver.right()
+                        driver.right(ui_current_speed)
+                    case 'STOP':
+                        driver.stop()
                     case _:
                         # debug print for invalid state tracking
                         print(f'default move state...? We should not be getting here!')
                         driver.stop()
 
             case 'SPEED':
-                pass
+                match decoded_msg[1]:
+                    case 'FASTER':
+                        if (ui_current_speed < 1):
+                            ui_current_speed += 0.1
+                        else:
+                            ui_current_speed = 1
+                    case 'SLOWER':
+                        if (ui_current_speed > 0):
+                            ui_current_speed -= 0.1
+                        else:
+                            ui_current_speed = 0
+                    case _:
+                        print(f'default speed state -> error occurred!')
 
             case _:
                 print("default!")
