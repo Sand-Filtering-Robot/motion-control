@@ -78,6 +78,11 @@ def handleUserInterface(clientSocket):
                 print("default!")
         pass
 
+### Detection Thread
+def run_detection():
+    detection.run_detection(debug=True)
+
+### Main function definition
 def main():
     ### MOTOR DRIVER SETUP ###
     # create list with motor driver pins
@@ -91,6 +96,18 @@ def main():
     # intialize motor driver
     global driver
     driver = MotorDriver(motorPins=motorPinsList)
+
+    ### OBJECT DETECTION SETUP ###
+    # initializes the camera and ssdlite model
+    global detection
+    detection = ObjectDetection()
+
+    # configure the camera settings
+    detection.configure_camera()
+    
+    # initialize detection
+    detectionThread = threading.Thread(target=run_detection)
+    detectionThread.start()
 
     ### SOCKET SERVER SETUP ###
     # First: instantiate the socket
