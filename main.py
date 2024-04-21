@@ -5,7 +5,7 @@ import time
 import socket
 
 # environment variables
-from env import SERVER_PORT, STARTING_MODE
+from env import SERVER_PORT, STARTING_MODE, DEFAULT_SLEEP_TIME
 
 # motor driver imports
 from src.motor import MotorPins
@@ -17,6 +17,7 @@ def handleUserInterface(clientSocket):
     ui_current_speed = DEFAULT_SPEED
     ui_current_mode = STARTING_MODE
     path_planner = None
+    sand_e_sleep_time = 0.25
     while True:
         # receive a request/message from UI
         recv_msg = clientSocket.recv(64).decode()
@@ -104,16 +105,21 @@ def handleUserInterface(clientSocket):
                     match move_direction:
                         case 'LEFT':
                             driver.left(ui_current_speed)
+                            sand_e_sleep_time = 1
                         case 'RIGHT':
                             driver.right(ui_current_speed)
+                            sand_e_sleep_time = 1
                         case 'UP':
                             driver.forward(ui_current_speed)
+                            sand_e_sleep_time = 0.5
                         case 'DOWN':
                             driver.forward(ui_current_speed)
+                            sand_e_sleep_time = 0.5
                         case _:
                             print(f'ERROR: Unexpected direction return ({move_direction}) from PathPlanning')
 
         time.sleep(0.25)
+        sand_e_sleep_time = DEFAULT_SLEEP_TIME
     
 
 def main():
