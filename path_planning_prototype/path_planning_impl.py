@@ -23,6 +23,7 @@ class PlanStateManager:
         self.direction_stack = []
         self.unmatched_moves = []
         self.grid = []
+        self.move_direction = None
 
 
 def initialize_grid(bounding_box: BoundingBox) -> list:
@@ -89,8 +90,8 @@ def setNextDirection(state):
             state.direction = Direction.LEFT
 
 # Motion control API calls here
-def send_move_control_signal(direction):
-    print("Sending move signal " + str(direction) + " to motion control!")
+def send_move_control_signal(state):
+    print("Sending move signal " + str(state.direction) + " to motion control!")
 
 def move_up(state):
     state.grid[state.x][state.y] = "^"
@@ -232,7 +233,7 @@ def move(state: PlanStateManager) -> int:
                     state.direction = Direction.UP
                 state.direction_stack = []
                 state.unmatched_moves = []
-    send_move_control_signal(state.direction)
+    send_move_control_signal(state)
     return 0
 
 def save_current_grid_state(state):
@@ -242,24 +243,41 @@ def save_current_grid_state(state):
             f.write(str(row))
             f.write('\n')
 
+class PathPlanner():
+    def __init__(self, top_lat, left_long, bottom_lat, right_long, use_test_grid=False):
+        self.state = PlanStateManager()
+        if (use_test_grid):
+            self.bounding_box = None
+            self.state.direction = Direction.DOWN
+            self.state.overall_direction = OverallDirection.LR
+            self.state.grid = [['0', '0', '0'], ['0', '0', '0'], ['0', '0', '0']]
+        else:
+            self.bounding_box = BoundingBox(top_lat, left_long, bottom_lat, right_long)
+            self.state.direction, self.state.overall_direction = get_initial_direction(self.bounding_box)
+            self.state.grid = initialize_grid(self.bounding_box)
+
+    def move(self):
+        return move(self.state)
+
 def test_main():
     print("Testing path planning")
-    bounding_box: BoundingBox = BoundingBox('33.77905556', '84.405694444', '33.77891666', '84.4053611')
-    state = PlanStateManager()
-    direction, gen_direction = get_initial_direction(bounding_box)
-    state.direction = direction
-    state.overall_direction = gen_direction
+    # bounding_box: BoundingBox = BoundingBox('33.77905556', '84.405694444', '33.77891666', '84.4053611')
+    # state = PlanStateManager()
+    # direction, gen_direction = get_initial_direction(bounding_box)
+    # state.direction = direction
+    # state.overall_direction = gen_direction
 
-    grid = initialize_grid(bounding_box)
+    # grid = initialize_grid(bounding_box)
 
-    state.grid = grid
-    print(f"Initial State: ({state.x}, {state.y}), Direction: {state.direction}")
+    # state.grid = grid
+    # print(f"Initial State: ({state.x}, {state.y}), Direction: {state.direction}")
+    planner = PathPlanner(33.77905556, 84.405694444, 33.77891666, 84.4053611, True)
 
     move_return = 0
     while (move_return != -1):
-        move_return = move(state)
-        print(f"Current state: ({state.x}, {state.y}), Direction: {state.direction}")
-    for row in state.grid:
+        move_return = planner.move()
+        print(f"Current state: ({planner.state.x}, {planner.state.y}), Direction: {planner.state.direction}")
+    for row in planner.state.grid:
         print(row)
 
 if __name__ == "__main__":

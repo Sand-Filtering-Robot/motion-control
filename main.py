@@ -5,15 +5,18 @@ import time
 import socket
 
 # environment variables
-from env import SERVER_PORT
+from env import SERVER_PORT, STARTING_MODE
 
 # motor driver imports
 from src.motor import MotorPins
 from src.motor import MotorDriver
 from src.motor import DEFAULT_SPEED
+from path_planning_prototype.path_planning_impl import PathPlanner
 
 def handleUserInterface(clientSocket):
     ui_current_speed = DEFAULT_SPEED
+    ui_current_mode = STARTING_MODE
+    path_planner = None
     while True:
         # receive a request/message from UI
         recv_msg = clientSocket.recv(64).decode()
@@ -32,29 +35,40 @@ def handleUserInterface(clientSocket):
             case 'MODE':
                 match decoded_msg[1]:
                     case 'MANUAL':
+                        if ui_current_mode != 'MANUAL':
+                            driver.stop()
                         ui_current_speed = DEFAULT_SPEED
+                        ui_current_mode = 'MANUAL'
                     case 'AUTONOMOUS':
-                        pass
+                        if ui_current_mode != 'AUTONOMOUS':
+                            driver.stop()
+                        if path_planner != None:
+                            ui_current_mode = DEFAULT_SPEED
+                            ui_current_mode = 'AUTONOMOUS'
+                        else:
+                            driver.stop()
+                            print('Tried to go autonomous, but path planner has not been initialized!')
                     case _:
                         print(f'default mode state -> error occurred!')
                 pass
 
             case 'MOVE':
-                match decoded_msg[1]:
-                    case 'UP':
-                        driver.forward(ui_current_speed)
-                    case 'DOWN':
-                        driver.backward(ui_current_speed)
-                    case 'LEFT':
-                        driver.left(ui_current_speed)
-                    case 'RIGHT':
-                        driver.right(ui_current_speed)
-                    case 'STOP':
-                        driver.stop()
-                    case _:
-                        # debug print for invalid state tracking
-                        print(f'default move state...? We should not be getting here!')
-                        driver.stop()
+                if ui_current_mode == "MANUAL":
+                    match decoded_msg[1]:
+                        case 'UP':
+                            driver.forward(ui_current_speed)
+                        case 'DOWN':
+                            driver.backward(ui_current_speed)
+                        case 'LEFT':
+                            driver.left(ui_current_speed)
+                        case 'RIGHT':
+                            driver.right(ui_current_speed)
+                        case 'STOP':
+                            driver.stop()
+                        case _:
+                            # debug print for invalid state tracking
+                            print(f'default move state...? We should not be getting here!')
+                            driver.stop()
 
             case 'SPEED':
                 match decoded_msg[1]:
@@ -71,9 +85,36 @@ def handleUserInterface(clientSocket):
                     case _:
                         print(f'default speed state -> error occurred!')
 
+            case 'COORDS':
+                top_lat = decoded_msg[1]
+                left_long = decoded_msg[2]
+                bottom_lat = decoded_msg[3]
+                right_long = decoded_msg[4]
+                path_planner = PathPlanner(top_lat, left_long, bottom_lat, right_long, True)
+
             case _:
                 print("default!")
-        pass
+        
+        if ui_current_mode == 'AUTONOMOUS':
+            if path_planner == None:
+                print('ERROR: In autonomous control mode, but PathPlanner has not been initalized!')
+            else:
+                if path_planner.move() != -1:
+                    move_direction = str(path_planner.state.direction)
+                    match move_direction:
+                        case 'LEFT':
+                            driver.left(ui_current_speed)
+                        case 'RIGHT':
+                            driver.right(ui_current_speed)
+                        case 'UP':
+                            driver.forward(ui_current_speed)
+                        case 'DOWN':
+                            driver.forward(ui_current_speed)
+                        case _:
+                            print(f'ERROR: Unexpected direction return ({move_direction}) from PathPlanning')
+
+        time.sleep(0.25)
+    
 
 def main():
     ### MOTOR DRIVER SETUP ###
