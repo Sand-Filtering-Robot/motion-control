@@ -13,6 +13,9 @@ from src.motor import MotorDriver
 from src.motor import DEFAULT_SPEED
 from path_planning_prototype.path_planning_impl import PathPlanner
 
+# object detection imports
+from object_detection.detection import ObjectDetection
+
 def handleUserInterface(clientSocket, app_state_lock, app_current_speed, app_current_mode, path_planner, sand_e_sleep_time):
     while True:
         # receive a request/message from UI
@@ -124,6 +127,28 @@ def auto_movement(app_state_lock, app_current_speed, app_current_mode, path_plan
         app_state_lock.release()
         time.sleep(sand_e_sleep_time)
 
+### Detection Thread
+def run_detection():
+    while True:
+        detection.run_detection(detected, detectedLock, debug=True)
+        time.sleep(1)
+
+### Helper method that checks whether a person has been detected
+# Used by path planner
+def check_detection() -> bool:
+    detectedLock.acquire()
+    is_detected = detected[0]
+    detectedLock.release()
+
+    return is_detected
+
+### Fake path planner (just for checking detection status)
+def fake_path_planner_thread():
+    while True:
+        print(f'Detection Status: {check_detection()}')
+        time.sleep(1)
+
+### Main function definition
 def main():
     ### MOTOR DRIVER SETUP ###
     # create list with motor driver pins
@@ -137,6 +162,28 @@ def main():
     # intialize motor driver
     global driver
     driver = MotorDriver(motorPins=motorPinsList)
+
+    ### OBJECT DETECTION SETUP ###
+    # initialize global detection variable accessed by path planner
+    global detected
+    global detectedLock
+    detected = [False]
+    detectedLock = threading.Lock()
+
+    # initializes the camera and ssdlite model
+    global detection
+    detection = ObjectDetection()
+
+    # configure the camera settings
+    detection.configure_camera(debug=True)
+    
+    # initialize detection
+    detectionThread = threading.Thread(target=run_detection)
+    detectionThread.start()
+
+    ### Fake path planner initialization
+    fake_planner = threading.Thread(target=fake_path_planner_thread)
+    fake_planner.start()
 
     global app_current_speed
     app_current_speed = DEFAULT_SPEED
