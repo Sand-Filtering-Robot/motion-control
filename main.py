@@ -112,20 +112,20 @@ def auto_movement():
                     match move_direction:
                         case 'LEFT':
                             driver.left(app_state['speed'])
-                            sand_e_sleep_time = 1
+                            app_state['sleep_time'] = 1
                         case 'RIGHT':
                             driver.right(app_state['speed'])
-                            sand_e_sleep_time = 1
+                            app_state['sleep_time'] = 1
                         case 'UP':
                             driver.forward(app_state['speed'])
-                            sand_e_sleep_time = 0.5
+                            app_state['sleep_time'] = 0.5
                         case 'DOWN':
                             driver.forward(app_state['speed'])
-                            sand_e_sleep_time = 0.5
+                            app_state['sleep_time'] = 0.5
                         case _:
                             print(f'ERROR: Unexpected direction return ({move_direction}) from PathPlanning')
         app_state['lock'].release()
-        time.sleep(sand_e_sleep_time)
+        time.sleep(app_state['sleep_time'])
 
 ### Detection Thread
 def run_detection():
