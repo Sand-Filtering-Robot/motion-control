@@ -11,7 +11,7 @@ from env import SERVER_PORT, STARTING_MODE, DEFAULT_SLEEP_TIME
 from src.motor import MotorPins
 from src.motor import MotorDriver
 from src.motor import DEFAULT_SPEED
-from path_planning_prototype.path_planning_impl import PathPlanner
+from path_planning_prototype.path_planning_impl import PathPlanner, Direction
 
 # object detection imports
 from object_detection.detection import ObjectDetection
@@ -101,29 +101,60 @@ def handleUserInterface(clientSocket):
 
 
 def auto_movement():
+    app_state['lock'].acquire()
+    app_state['current_direction'] = None
+    app_state['lock'].release()
     while True:
         app_state['lock'].acquire()
         if app_state['mode'] == 'AUTONOMOUS':
             if app_state['path_planner'] == None:
                 print('ERROR: In autonomous control mode, but PathPlanner has not been initalized!')
             else:
+                if app_state['current_direction'] == None:
+                    app_state['current_direction'] = app_state['path_planner'].state.direction 
                 if app_state['path_planner'].move(driver) != -1:
                     move_direction = str(app_state['path_planner'].state.direction)
-                    match move_direction:
-                        case 'LEFT':
-                            driver.left(app_state['speed'])
-                            app_state['sleep_time'] = 1
-                        case 'RIGHT':
-                            driver.right(app_state['speed'])
-                            app_state['sleep_time'] = 1
-                        case 'UP':
-                            driver.forward(app_state['speed'])
-                            app_state['sleep_time'] = 0.5
-                        case 'DOWN':
-                            driver.forward(app_state['speed'])
-                            app_state['sleep_time'] = 0.5
-                        case _:
-                            print(f'ERROR: Unexpected direction return ({move_direction}) from PathPlanning')
+                    if move_direction == app_state['current_direction']:
+                        driver.forward()
+                        app_state['sleep_time'] = 1
+                    else:
+                        match move_direction:
+                            case 'LEFT':
+                                if app_state['current_dircection'] == Direction.UP:
+                                    driver.left(app_state['speed'])
+                                elif app_state['current_direction'] == Direction.DOWN:
+                                    driver.right(app_state['speed'])
+                                time.sleep(1)
+                                driver.forward(app_state['speed'])
+                                app_state['sleep_time'] = 1
+                                app_state['current_direction'] = Direction.LEFT
+                            case 'RIGHT':
+                                if app_state['current_dircection'] == Direction.UP:
+                                    driver.right(app_state['speed'])
+                                elif app_state['current_direction'] == Direction.DOWN:
+                                    driver.left(app_state['speed'])
+                                time.sleep(1)
+                                driver.forward(app_state['speed'])
+                                app_state['sleep_time'] = 1
+                                app_state['current_direction'] = Direction.RIGHT
+                            case 'UP':
+                                if app_state['current_dircection'] == Direction.LEFT:
+                                    driver.right(app_state['speed'])
+                                elif app_state['current_direction'] == Direction.RIGHT:
+                                    driver.left(app_state['speed'])
+                                driver.forward(app_state['speed'])
+                                app_state['sleep_time'] = 0.5
+                                app_state['current_direction'] = Direction.UP
+                            case 'DOWN':
+                                if app_state['current_dircection'] == Direction.LEFT:
+                                    driver.left(app_state['speed'])
+                                elif app_state['current_direction'] == Direction.RIGHT:
+                                    driver.right(app_state['speed'])
+                                driver.forward(app_state['speed'])
+                                app_state['sleep_time'] = 0.5
+                                app_state['current_direction'] = Direction.DOWN
+                            case _:
+                                print(f'ERROR: Unexpected direction return ({move_direction}) from PathPlanning')
         app_state['lock'].release()
         time.sleep(app_state['sleep_time'])
 
