@@ -1,3 +1,7 @@
 [submodule "object_detection"]
 	path = object_detection
 	url = https://github.com/Sand-Filtering-Robot/object-detection.git
+
+[submodule "object-detection"]
+	path = object-detection
+	url = https://github.com/Sand-Filtering-Robot/object-detection.git
