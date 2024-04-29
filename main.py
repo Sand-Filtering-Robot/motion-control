@@ -5,17 +5,18 @@ import time
 import socket
 
 # environment variables
-from env import SERVER_PORT, STARTING_MODE, DEFAULT_SLEEP_TIME
+from src.env import SERVER_PORT, STARTING_MODE, DEFAULT_SLEEP_TIME
 
 # motor driver imports
 from src.motor import MotorPins
 from src.motor import MotorDriver
 from src.motor import DEFAULT_SPEED
-from path_planning_prototype.path_planning_impl import PathPlanner, Direction
+from src.path_planning_impl import PathPlanner, Direction
 
 # object detection imports
 from object_detection.detection import ObjectDetection
 
+# thread for handling user interface commands
 def handleUserInterface(clientSocket):
     while True:
         # receive a request/message from UI
@@ -25,27 +26,26 @@ def handleUserInterface(clientSocket):
         # CMD PARAMETER_0 PARAMETER_1...
         decoded_msg = recv_msg.strip().split()
 
-        # Not sure if we really need this safety check. But it's here
-        # just in case we get some empty data?
+        # safety check for possible empty data :)
         if len(decoded_msg) < 1:
             continue
         
         # parse the message and execute corresponding action
-        app_state['lock'].acquire()
+        appState['lock'].acquire()
         match decoded_msg[0]:   # apparently python has a switch statement now :)
             case 'MODE':
                 match decoded_msg[1]:
                     case 'MANUAL':
-                        if app_state['mode'] != 'MANUAL':
+                        if appState['mode'] != 'MANUAL':
                             driver.stop()
-                        app_state['speed'] = DEFAULT_SPEED
-                        app_state['mode'] = 'MANUAL'
+                        appState['speed'] = DEFAULT_SPEED
+                        appState['mode'] = 'MANUAL'
                     case 'AUTONOMOUS':
-                        if app_state['mode'] != 'AUTONOMOUS':
+                        if appState['mode'] != 'AUTONOMOUS':
                             driver.stop()
-                        if app_state['path_planner'] != None:
-                            app_state['mode'] = DEFAULT_SPEED
-                            app_state['mode'] = 'AUTONOMOUS'
+                        if appState['path_planner'] != None:
+                            appState['mode'] = DEFAULT_SPEED
+                            appState['mode'] = 'AUTONOMOUS'
                         else:
                             driver.stop()
                             print('Tried to go autonomous, but path planner has not been initialized!')
@@ -54,16 +54,16 @@ def handleUserInterface(clientSocket):
                 pass
 
             case 'MOVE':
-                if app_state['mode'] == "MANUAL":
+                if appState['mode'] == "MANUAL":
                     match decoded_msg[1]:
                         case 'UP':
-                            driver.forward(app_state['speed'])
+                            driver.forward(appState['speed'])
                         case 'DOWN':
-                            driver.backward(app_state['speed'])
+                            driver.backward(appState['speed'])
                         case 'LEFT':
-                            driver.left(app_state['speed'])
+                            driver.left(appState['speed'])
                         case 'RIGHT':
-                            driver.right(app_state['speed'])
+                            driver.right(appState['speed'])
                         case 'STOP':
                             driver.stop()
                         case _:
@@ -74,15 +74,15 @@ def handleUserInterface(clientSocket):
             case 'SPEED':
                 match decoded_msg[1]:
                     case 'FASTER':
-                        if (app_state['speed'] < 1):
-                            app_state['speed'] += 0.1
+                        if (appState['speed'] < 1):
+                            appState['speed'] += 0.1
                         else:
-                            app_state['speed'] = 1
+                            appState['speed'] = 1
                     case 'SLOWER':
-                        if (app_state['speed'] > 0):
-                            app_state['speed'] -= 0.1
+                        if (appState['speed'] > 0):
+                            appState['speed'] -= 0.1
                         else:
-                            app_state['speed'] = 0
+                            appState['speed'] = 0
                     case _:
                         print(f'default speed state -> error occurred!')
 
@@ -91,93 +91,86 @@ def handleUserInterface(clientSocket):
                 left_long = decoded_msg[2]
                 bottom_lat = decoded_msg[3]
                 right_long = decoded_msg[4]
-                app_state['path_planner'] = PathPlanner(top_lat, left_long, bottom_lat, right_long, True)
+                appState['path_planner'] = PathPlanner(top_lat, left_long, bottom_lat, right_long, True)
 
             case _:
                 print("default!")
-        app_state['lock'].release()
+        appState['lock'].release()
 
         time.sleep(0.25)
 
-
-def auto_movement():
-    app_state['lock'].acquire()
-    app_state['current_direction'] = None
-    app_state['lock'].release()
+# path planner auto movement thread
+def autoMovement():
+    appState['lock'].acquire()
+    appState['current_direction'] = None
+    appState['lock'].release()
     while True:
-        app_state['lock'].acquire()
-        if app_state['mode'] == 'AUTONOMOUS':
-            if app_state['path_planner'] == None:
+        appState['lock'].acquire()
+        if appState['mode'] == 'AUTONOMOUS':
+            if appState['path_planner'] == None:
                 print('ERROR: In autonomous control mode, but PathPlanner has not been initalized!')
             else:
-                if app_state['current_direction'] == None:
-                    app_state['current_direction'] = app_state['path_planner'].state.direction 
-                if app_state['path_planner'].move(driver) != -1:
-                    move_direction = str(app_state['path_planner'].state.direction)
-                    if move_direction == app_state['current_direction']:
+                if appState['current_direction'] == None:
+                    appState['current_direction'] = appState['path_planner'].state.direction 
+                if appState['path_planner'].move(driver) != -1:
+                    move_direction = str(appState['path_planner'].state.direction)
+                    if move_direction == appState['current_direction']:
                         driver.forward()
-                        app_state['sleep_time'] = 1
+                        appState['sleep_time'] = 1
                     else:
                         match move_direction:
                             case 'LEFT':
-                                if app_state['current_dircection'] == Direction.UP:
-                                    driver.left(app_state['speed'])
-                                elif app_state['current_direction'] == Direction.DOWN:
-                                    driver.right(app_state['speed'])
+                                if appState['current_dircection'] == Direction.UP:
+                                    driver.left(appState['speed'])
+                                elif appState['current_direction'] == Direction.DOWN:
+                                    driver.right(appState['speed'])
                                 time.sleep(1)
-                                driver.forward(app_state['speed'])
-                                app_state['sleep_time'] = 1
-                                app_state['current_direction'] = Direction.LEFT
+                                driver.forward(appState['speed'])
+                                appState['sleep_time'] = 1
+                                appState['current_direction'] = Direction.LEFT
                             case 'RIGHT':
-                                if app_state['current_dircection'] == Direction.UP:
-                                    driver.right(app_state['speed'])
-                                elif app_state['current_direction'] == Direction.DOWN:
-                                    driver.left(app_state['speed'])
+                                if appState['current_dircection'] == Direction.UP:
+                                    driver.right(appState['speed'])
+                                elif appState['current_direction'] == Direction.DOWN:
+                                    driver.left(appState['speed'])
                                 time.sleep(1)
-                                driver.forward(app_state['speed'])
-                                app_state['sleep_time'] = 1
-                                app_state['current_direction'] = Direction.RIGHT
+                                driver.forward(appState['speed'])
+                                appState['sleep_time'] = 1
+                                appState['current_direction'] = Direction.RIGHT
                             case 'UP':
-                                if app_state['current_dircection'] == Direction.LEFT:
-                                    driver.right(app_state['speed'])
-                                elif app_state['current_direction'] == Direction.RIGHT:
-                                    driver.left(app_state['speed'])
-                                driver.forward(app_state['speed'])
-                                app_state['sleep_time'] = 0.5
-                                app_state['current_direction'] = Direction.UP
+                                if appState['current_dircection'] == Direction.LEFT:
+                                    driver.right(appState['speed'])
+                                elif appState['current_direction'] == Direction.RIGHT:
+                                    driver.left(appState['speed'])
+                                driver.forward(appState['speed'])
+                                appState['sleep_time'] = 0.5
+                                appState['current_direction'] = Direction.UP
                             case 'DOWN':
-                                if app_state['current_dircection'] == Direction.LEFT:
-                                    driver.left(app_state['speed'])
-                                elif app_state['current_direction'] == Direction.RIGHT:
-                                    driver.right(app_state['speed'])
-                                driver.forward(app_state['speed'])
-                                app_state['sleep_time'] = 0.5
-                                app_state['current_direction'] = Direction.DOWN
+                                if appState['current_dircection'] == Direction.LEFT:
+                                    driver.left(appState['speed'])
+                                elif appState['current_direction'] == Direction.RIGHT:
+                                    driver.right(appState['speed'])
+                                driver.forward(appState['speed'])
+                                appState['sleep_time'] = 0.5
+                                appState['current_direction'] = Direction.DOWN
                             case _:
                                 print(f'ERROR: Unexpected direction return ({move_direction}) from PathPlanning')
-        app_state['lock'].release()
-        time.sleep(app_state['sleep_time'])
+        appState['lock'].release()
+        time.sleep(appState['sleep_time'])
 
 ### Detection Thread
-def run_detection():
+def runDetection():
     while True:
-        detection.run_detection(detected, detectedLock, debug=True)
+        detection.run_detection(detectedState, debug=False) # debug=True prints model outputs to terminal
         time.sleep(1)
 
-### Helper method that checks whether a person has been detected
-# Used by path planner
-def check_detection() -> bool:
-    detectedLock.acquire()
-    is_detected = detected[0]
-    detectedLock.release()
+### Path planner helper method that checks whether a person has been detected
+def checkDetection() -> bool:
+    detectedState['lock'].acquire()
+    is_detected = detectedState['state']
+    detectedState['lock'].release()
 
     return is_detected
-
-### Fake path planner (just for checking detection status)
-def fake_path_planner_thread():
-    while True:
-        print(f'Detection Status: {check_detection()}')
-        time.sleep(1)
 
 ### Main function definition
 def main():
@@ -196,32 +189,33 @@ def main():
 
     ### OBJECT DETECTION SETUP ###
     # initialize global detection variable accessed by path planner
-    global detected
-    global detectedLock
-    detected = [False]
-    detectedLock = threading.Lock()
+    global detectedState
+    detectedState = {'lock': threading.Lock(),
+                     'state': False}
 
     # initializes the camera and ssdlite model
     global detection
     detection = ObjectDetection()
 
     # configure the camera settings
-    detection.configure_camera(debug=True)
+    detection.configure_camera(debug=True) # debug=True enables the preview window
     
     # initialize detection
-    detectionThread = threading.Thread(target=run_detection)
+    detectionThread = threading.Thread(target=runDetection)
     detectionThread.start()
 
-    ### Fake path planner initialization
-    fake_planner = threading.Thread(target=fake_path_planner_thread)
-    fake_planner.start()
+    ### PATH PLANNER SETUP ###
+    # initialize global appState
+    global appState
+    appState = {'lock': threading.Lock(),
+                 'speed': DEFAULT_SPEED, 
+                 'mode': STARTING_MODE, 
+                 'path_planner': PathPlanner(0, 0, 0, 0, True), 
+                 'sleep_time': DEFAULT_SLEEP_TIME}
 
-    # Update path planner to a real path planner after testing
-    global app_state
-    app_state = {'lock': threading.Lock(),'speed': DEFAULT_SPEED, 'mode': STARTING_MODE, 'path_planner': PathPlanner(0, 0, 0, 0, True), 'sleep_time': DEFAULT_SLEEP_TIME}
-
-    motion_handler = threading.Thread(target=auto_movement)
-    motion_handler.start()
+    # intialize path planning auto movement thread
+    motionHandler = threading.Thread(target=autoMovement)
+    motionHandler.start()
 
     ### SOCKET SERVER SETUP ###
     # First: instantiate the socket
@@ -261,5 +255,6 @@ def main():
         handler = threading.Thread(target=handleUserInterface, args=(clientSocket))
         handler.start()
     
+# program entry point
 if __name__ == '__main__':
-    main()
+    main() # call defined main()
